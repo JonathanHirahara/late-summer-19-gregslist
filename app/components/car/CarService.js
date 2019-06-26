@@ -1,12 +1,16 @@
 import Car from "../../models/Car.js";
 
+// @ts-ignore
+let _carApi = axios.create({
+  baseURL: 'https://bcw-sandbox.herokuapp.com/api/cars',
+  timeout: 3000
+})
+
 
 let _state = {
   cars: []
 }
 
-_state.cars.push( new Car({make:"Buick", model:"Century", year:1989, color:"Cherry"}))
-_state.cars.push(new Car({make:"Lambo", model:"diablo", year:2006, color:"Canary Yellow"}))
 
 
 let _subscribers = {
@@ -20,8 +24,42 @@ function setState(propName, data){
 }
 
 export default class CarService{
+
   constructor(){
     console.log("car service works", this.Cars)
+  }
+
+  purchase(carId) {
+    _carApi.delete(carId)
+      .then(() => {
+        let cars = this.Cars
+        let index = cars.findIndex(c => c._id == carId)
+        cars.splice(index, 1)
+        setState('cars', cars)
+      })
+      .catch(e => console.error(e))
+  }
+
+  placeBid(carId) {
+    // we need to get the complete car object from the state.cars with _id == carId
+    let carToUpdate = this.Cars.find(c => c._id == carId)
+    if (!carToUpdate) return alert('we can\'t find that car. sorry.') // this is null check
+    // modify the price of the found car
+    carToUpdate.price *= 1.1
+    // http PUT request
+    _carApi.put(carId, carToUpdate)
+      // then more logic
+      .then(res => {
+        // 1. envoke getCars || we'll not do this
+        // this.getCars()
+        // 2. add the car to the cars array in our state || we'll do this
+        let cars = this.Cars
+        let index = cars.findIndex(c => c._id == carId)
+        // cars.splice(index, 1, carToUpdate) | this replaces the old object with a completely new one
+        cars[index].price = carToUpdate.price // this just updates the property on the existing object
+        setState('cars', cars)
+      })
+      .catch(e => console.error(e))
   }
 
   addSubscriber(propName, fn){
@@ -34,9 +72,26 @@ export default class CarService{
   }
 
   addCar(newCar){
-    let temp = this.Cars
-    temp.push(new Car(newCar))
-    setState("cars", temp) 
+    _carApi.post('', newCar)
+      .then(res => {
+        // 1. envoke getCars || we'll not do this
+        // 2. add the car to the cars array in our state || we'll do this
+        let serverCar = res.data.data
+        let car = new Car(serverCar)
+        let cars = this.Cars
+        cars.unshift(car)
+        setState('cars', cars)
+      })
+      .catch(e => console.error(e))
   }
 
+  getCars() {
+    _carApi.get('')
+      .then(res => {
+        let serverCars = res.data.data
+        let cars = serverCars.map(c => new Car(c)).reverse()
+        setState('cars', cars)
+      })
+      .catch(e => console.error(e))
+  }
 }

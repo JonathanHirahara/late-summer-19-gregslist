@@ -18,7 +18,7 @@ export default class CarController{
   constructor(){
     console.log("car controller works")
     _carService.addSubscriber("cars", drawCars)
-    drawCars()
+    _carService.getCars()
   }
 
   addCar(e){
@@ -29,11 +29,21 @@ export default class CarController{
       make: form.make.value,
       model: form.model.value,
       year: form.year.value,
-      color: form.color.value
+      price: form.price.value,
+      description: form.description.value,
+      imgUrl: form.imgUrl.value
     }
 
     _carService.addCar(newCar)
     form.reset()
+  }
+
+  placeBid(carId) {
+    _carService.placeBid(carId)
+  }
+
+  purchase(carId) {
+    _carService.purchase(carId)
   }
 
 }
